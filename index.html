@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Matrice 4T">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icons/icon.svg">
+<title>DJI Matrice 4T</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
+main{max-width:560px;margin:auto;padding:18px 16px 32px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+h1{font-size:27px;margin:0}.sub{color:#6b7280;font-size:14px;margin-top:3px}.time{font-size:14px;color:#6b7280}
+.card{background:white;border:1px solid #e5e7eb;border-radius:18px;padding:16px;margin:10px 0}
+button{width:100%;border:0;border-radius:15px;padding:15px;font-size:17px;font-weight:700;margin:6px 0;min-height:50px}
+.primary{background:#111827;color:white}.secondary{background:white;color:#111827;border:1px solid #d1d5db}
+.danger{background:#fff;border:1px solid #fecaca;color:#b91c1c}.hidden{display:none!important}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.muted{color:#6b7280}.small{font-size:13px}
+.progress{height:9px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin-top:9px}.bar{height:100%;width:0;background:#16a34a;transition:.2s}
+.item{display:flex;align-items:center;gap:12px;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:12px;margin:7px 0;min-height:52px}
+.item input{width:24px;height:24px;accent-color:#16a34a;flex:none}.item span{font-size:15px;line-height:1.3}
+.big{font-size:48px;font-weight:800;text-align:center;letter-spacing:1px;margin:18px 0 5px}.center{text-align:center}
+.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:700;font-size:13px}
+textarea{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:12px;font:inherit;resize:vertical}
+label.field{display:block;font-size:14px;font-weight:600;margin:12px 0 5px}.field input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;font:inherit}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><div><h1>DJI Matrice 4T</h1><div class="sub">Flight Check</div></div><div id="clock" class="time"></div></div>
+
+<section id="home">
+<div class="card">
+  <button class="primary" id="newFlight">🛩️ Nieuwe vlucht</button>
+  <button class="secondary" id="daily">✓ Dagelijkse controle</button>
+</div>
+<div class="card">
+ <div class="row"><strong>Vandaag</strong><span id="dailyStatus" class="muted small">Nog niet uitgevoerd</span></div>
+ <div class="progress"><div id="dailyBar" class="bar"></div></div>
+</div>
+<div class="card">
+ <strong>Laatste vlucht</strong>
+ <div id="lastFlight" class="muted small" style="margin-top:7px">Nog geen vlucht opgeslagen.</div>
+</div>
+</section>
+
+<section id="quick" class="hidden">
+<div class="row"><h2>⚡ Quick Check</h2><button id="quickBack" class="secondary" style="width:auto;padding:9px 13px;font-size:14px">Terug</button></div>
+<p class="muted small">Alleen de essentiële controles vóór iedere vlucht.</p>
+<div id="quickList"></div>
+<div class="card"><div class="row"><span>Voortgang</span><strong id="quickPct">0%</strong></div><div class="progress"><div id="quickBar" class="bar"></div></div></div>
+<button id="startFlight" class="primary" disabled style="opacity:.45">🔒 Vlucht vrijgeven</button>
+</section>
+
+<section id="flying" class="hidden">
+<div class="card center"><span class="badge">● VLUCHT ACTIEF</span><div id="timer" class="big">00:00:00</div><div id="startedAt" class="muted small"></div></div>
+<div class="card">
+<label class="field">Locatie / project<input id="project" placeholder="Bijv. Westerhever"></label>
+<label class="field">Opmerking<textarea id="flightNote" rows="3" placeholder="Optioneel"></textarea></label>
+</div>
+<button id="incident" class="secondary">⚠️ Incident / bijzonderheid</button>
+<button id="endFlight" class="primary">🛬 Vlucht beëindigen</button>
+</section>
+
+<section id="post" class="hidden">
+<h2>🛬 Vlucht afronden</h2><p class="muted small">Korte controle na landing.</p>
+<div id="postList"></div>
+<button id="saveFlight" class="primary">✓ Vlucht opslaan</button>
+</section>
+
+<section id="dailyPanel" class="hidden">
+<div class="row"><h2>Dagelijkse controle</h2><button id="dailyBack" class="secondary" style="width:auto;padding:9px 13px;font-size:14px">Terug</button></div>
+<div id="dailyList"></div>
+<button id="saveDaily" class="primary">✓ Controle afgerond</button>
+</section>
+
+<section id="incidentPanel" class="hidden">
+<h2>⚠️ Incident / bijzonderheid</h2>
+<textarea id="incidentText" rows="7" placeholder="Beschrijf wat er is gebeurd..."></textarea>
+<button id="saveIncident" class="primary">Opslaan</button>
+<button id="cancelIncident" class="secondary">Annuleren</button>
+</section>
+</main>
+
+<script>
+const QUICK=[
+"Luchtruim en geldende beperkingen gecontroleerd",
+"Weer, wind en zicht gecontroleerd",
+"Drone en propellers visueel OK",
+"Accu voldoende geladen en zonder zichtbare schade",
+"GNSS/positionering OK",
+"Home Point correct geregistreerd",
+"RTH-hoogte en RTH-instelling gecontroleerd",
+"Start- en landingsgebied veilig"
+];
+const DAILY=[
+"Romp en armen gecontroleerd","Motoren en propellers gecontroleerd","Camera's en lenzen schoon",
+"Gimbal vrij en correct functionerend","Obstacle-sensing/sensoren gecontroleerd","TB65-accu gecontroleerd",
+"RC Plus 2 gecontroleerd","SD-kaart en opslag gecontroleerd","Firmware/app gecontroleerd",
+"Geen kritieke waarschuwingen aanwezig","Drone en controller fysiek onbeschadigd",
+"Reserveaccu's en noodzakelijke accessoires aanwezig"
+];
+const POST=["Drone visueel gecontroleerd na landing","Propellers en motoren gecontroleerd","Camera/gimbal gecontroleerd","Accu verwijderd en status gecontroleerd","Beeldmateriaal gecontroleerd"];
+let start=0,timer=null,incident="",flightData={};
+
+const $=id=>document.getElementById(id);
+const sections=["home","quick","flying","post","dailyPanel","incidentPanel"];
+function show(id){sections.forEach(s=>$(s).classList.toggle("hidden",s!==id));window.scrollTo(0,0)}
+function render(list,id,group){
+ const el=$(id); el.innerHTML="";
+ list.forEach((text,i)=>{
+   const label=document.createElement("label");label.className="item";
+   const cb=document.createElement("input");cb.type="checkbox";cb.dataset.group=group;cb.dataset.i=i;
+   const span=document.createElement("span");span.textContent=text;
+   label.append(cb,span);el.appendChild(label);
+ });
+ el.onchange=()=>update(group);
+}
+function update(group){
+ const boxes=[...document.querySelectorAll(`input[data-group="${group}"]`)];
+ const done=boxes.filter(x=>x.checked).length,pct=Math.round(done/boxes.length*100);
+ if(group==="quick"){$("quickPct").textContent=pct+"%";$("quickBar").style.width=pct+"%";$("startFlight").disabled=pct<100;$("startFlight").style.opacity=pct<100?".45":"1";$("startFlight").textContent=pct===100?"🟢 Vlucht vrijgeven":"🔒 Vlucht vrijgeven"}
+}
+function fmtTime(ms){let s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),z=s%60;return [h,m,z].map(n=>String(n).padStart(2,"0")).join(":")}
+function loadState(){
+ const d=JSON.parse(localStorage.getItem("m4t_state")||"{}");
+ if(d.daily){$("dailyStatus").textContent="Afgerond om "+d.daily;$("dailyBar").style.width="100%"}
+ if(d.last){$("lastFlight").textContent=d.last}
+}
+function saveState(extra){const d=JSON.parse(localStorage.getItem("m4t_state")||"{}");Object.assign(d,extra);localStorage.setItem("m4t_state",JSON.stringify(d));loadState()}
+function clock(){ $("clock").textContent=new Date().toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"}); } setInterval(clock,1000);clock();loadState();
+
+$("newFlight").onclick=()=>{render(QUICK,"quickList","quick");show("quick")};
+$("quickBack").onclick=()=>show("home");
+$("daily").onclick=()=>{render(DAILY,"dailyList","daily");show("dailyPanel")};
+$("dailyBack").onclick=()=>show("home");
+$("saveDaily").onclick=()=>{const b=[...document.querySelectorAll('input[data-group="daily"]')];if(b.some(x=>!x.checked)){alert("Niet alle dagelijkse controles zijn afgerond.");return}saveState({daily:new Date().toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"})});show("home")};
+$("startFlight").onclick=()=>{
+ start=Date.now();flightData={started:new Date(start).toISOString()};$("startedAt").textContent="Gestart om "+new Date(start).toLocaleTimeString("nl-NL");
+ $("timer").textContent="00:00:00";timer=setInterval(()=>$("timer").textContent=fmtTime(Date.now()-start),500);show("flying");
+};
+$("incident").onclick=()=>show("incidentPanel");
+$("cancelIncident").onclick=()=>show("flying");
+$("saveIncident").onclick=()=>{const t=$("incidentText").value.trim();if(!t){alert("Vul een beschrijving in.");return}incident+=(incident?"\n":"")+new Date().toLocaleTimeString("nl-NL")+" — "+t;$("incidentText").value="";show("flying")};
+$("endFlight").onclick=()=>{clearInterval(timer);render(POST,"postList","post");show("post")};
+$("saveFlight").onclick=()=>{
+ const boxes=[...document.querySelectorAll('input[data-group="post"]')];if(boxes.some(x=>!x.checked)){alert("Rond eerst alle post-flight controles af.");return}
+ const end=Date.now(),duration=fmtTime(end-start),project=$("project").value.trim()||"Geen projectnaam";
+ flightData={...flightData,end:new Date(end).toISOString(),duration,project,note:$("flightNote").value.trim(),incident};
+ saveState({last:`${new Date(start).toLocaleDateString("nl-NL")} • ${project} • ${duration}${incident?" • ⚠️ bijzonderheid":" "}`});
+ $("project").value="";$("flightNote").value="";incident="";show("home");alert("Vlucht opgeslagen.");
+};
+if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
