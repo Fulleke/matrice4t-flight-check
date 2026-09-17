@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Matrice 4T">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icons/icon.svg">
-<title>DJI Matrice 4T v8</title>
+<title>DJI Matrice 4T v9</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
 main{max-width:560px;margin:auto;padding:18px 16px 32px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
@@ -151,33 +151,24 @@ function update(group){
  if(group==="extended"){$("extendedPct").textContent=pct+"%";$("extendedBar").style.width=pct+"%";$("startExtended").disabled=pct<100;$("startExtended").style.opacity=pct<100?".45":"1";$("startExtended").textContent=pct===100?"🟢 Vlucht vrijgeven":"🔒 Vlucht vrijgeven"}
 }
 function fmtTime(ms){let s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),z=s%60;return [h,m,z].map(n=>String(n).padStart(2,"0")).join(":")}
+const FLIGHT_KEY="m4t_flights_v2";
 function getFlights(){
-  const d=JSON.parse(localStorage.getItem("m4t_state")||"{}");
-  if(Array.isArray(d.flights)) return d.flights;
-  if(d.last) return [{id:"legacy-"+Date.now(),text:d.last}];
-  return [];
+  try{const a=JSON.parse(localStorage.getItem(FLIGHT_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return []}
 }
+function setFlights(a){localStorage.setItem(FLIGHT_KEY,JSON.stringify(a))}
 function renderFlights(){
   const list=$("flightList"), flights=getFlights();
   $("flightCount").textContent=flights.length ? flights.length+" vlucht"+(flights.length===1?"":"en") : "";
   if(!flights.length){list.innerHTML='<span class="muted">Nog geen vluchten opgeslagen.</span>';return}
   list.innerHTML="";
   flights.forEach(f=>{
-    const row=document.createElement("div");
-    row.className="card"; row.style.margin="7px 0"; row.style.padding="12px";
-    const wrap=document.createElement("div"); wrap.className="row";
-    const text=document.createElement("span"); text.style.cssText="flex:1;line-height:1.35"; text.textContent=f.text;
-    const btn=document.createElement("button"); btn.className="danger"; btn.type="button";
-    btn.style.cssText="width:auto;padding:8px 10px;font-size:13px;margin:0;flex:none"; btn.textContent="🗑️";
-    btn.onclick=()=>{
-      if(!confirm("Deze vlucht verwijderen?")) return;
-      const d=JSON.parse(localStorage.getItem("m4t_state")||"{}");
-      d.flights=getFlights().filter(x=>String(x.id)!==String(f.id));
-      delete d.last;
-      localStorage.setItem("m4t_state",JSON.stringify(d));
-      renderFlights();
-    };
-    wrap.append(text,btn); row.appendChild(wrap); list.appendChild(row);
+    const row=document.createElement("div");row.className="card";row.style.margin="7px 0";row.style.padding="12px";
+    const wrap=document.createElement("div");wrap.className="row";
+    const text=document.createElement("span");text.style.cssText="flex:1;line-height:1.35";text.textContent=f.text;
+    const btn=document.createElement("button");btn.className="danger";btn.type="button";btn.textContent="🗑️";
+    btn.style.cssText="width:auto;padding:8px 10px;font-size:13px;margin:0;flex:none";
+    btn.onclick=()=>{if(!confirm("Deze vlucht verwijderen?"))return;setFlights(getFlights().filter(x=>String(x.id)!==String(f.id)));renderFlights()};
+    wrap.append(text,btn);row.appendChild(wrap);list.appendChild(row);
   });
 }
 function loadState(){
@@ -187,7 +178,7 @@ function loadState(){
 }
 function saveState(extra){
   const d=JSON.parse(localStorage.getItem("m4t_state")||"{}");
-  Object.assign(d,extra); localStorage.setItem("m4t_state",JSON.stringify(d)); loadState();
+  Object.assign(d,extra);localStorage.setItem("m4t_state",JSON.stringify(d));loadState();
 }
 function clock(){ $("clock").textContent=new Date().toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"}); } setInterval(clock,1000);clock();loadState();
 
@@ -212,11 +203,10 @@ $("saveFlight").onclick=()=>{
  const end=Date.now(),duration=fmtTime(end-start),project=$("project").value.trim()||"Geen projectnaam";
  flightData={...flightData,end:new Date(end).toISOString(),duration,project,note:$("flightNote").value.trim(),incident};
  const text=`${new Date(start).toLocaleDateString("nl-NL")} • ${project} • ${duration}${incident?" • ⚠️ bijzonderheid":" "}`;
-  const d=JSON.parse(localStorage.getItem("m4t_state")||"{}");
   const flights=getFlights();
   flights.unshift({id:String(Date.now())+"-"+Math.random().toString(36).slice(2),text});
-  d.flights=flights; delete d.last;
-  localStorage.setItem("m4t_state",JSON.stringify(d)); loadState();
+  setFlights(flights);
+  loadState();
  $("project").value="";$("flightNote").value="";incident="";show("home");alert("Vlucht opgeslagen.");
 };
 if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(()=>{});
