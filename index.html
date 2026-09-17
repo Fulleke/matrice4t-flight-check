@@ -159,7 +159,18 @@ function loadState(){
 function saveState(extra){const d=JSON.parse(localStorage.getItem("m4t_state")||"{}");Object.assign(d,extra);localStorage.setItem("m4t_state",JSON.stringify(d));loadState()}
 function clock(){ $("clock").textContent=new Date().toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"}); } setInterval(clock,1000);clock();loadState();
 
-$("clearLast").onclick=()=>{const d=JSON.parse(localStorage.getItem("m4t_state")||"{}");if(!d.last){alert("Er staat geen vluchtregistratie om te wissen.");return}if(confirm("Laatste vluchtregistratie wissen?")){delete d.last;localStorage.setItem("m4t_state",JSON.stringify(d));loadState()}};
+$("clearLast").onclick=()=>{
+  const state=JSON.parse(localStorage.getItem("m4t_state")||"{}");
+  if(!state.last){
+    $("lastFlight").textContent="Nog geen vlucht opgeslagen.";
+    return;
+  }
+  if(confirm("Laatste vluchtregistratie wissen?")){
+    delete state.last;
+    localStorage.setItem("m4t_state",JSON.stringify(state));
+    $("lastFlight").textContent="Nog geen vlucht opgeslagen.";
+  }
+};
 $("newFlight").onclick=()=>{render(QUICK,"quickList","quick");show("quick")};
 $("extendedFlight").onclick=()=>{render(EXTENDED,"extendedList","extended");show("extended")};
 $("extendedBack").onclick=()=>show("home");

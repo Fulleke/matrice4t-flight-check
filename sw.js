@@ -1,3 +1,7 @@
-self.addEventListener("install",e=>self.skipWaiting());
-self.addEventListener("activate",e=>self.clients.claim());
-self.addEventListener("fetch",e=>{if(e.request.method==="GET")e.respondWith(caches.open("m4t-v4").then(c=>c.match(e.request).then(r=>r||fetch(e.request).then(x=>{c.put(e.request,x.clone());return x}))))});
+const CACHE="m4t-v6";
+self.addEventListener("install",e=>{self.skipWaiting();});
+self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
+self.addEventListener("fetch",e=>{
+  if(e.request.method!=="GET") return;
+  e.respondWith(caches.open(CACHE).then(c=>c.match(e.request).then(r=>r||fetch(e.request).then(x=>{c.put(e.request,x.clone());return x;}))));
+});
