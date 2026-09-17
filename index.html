@@ -33,7 +33,10 @@ label.field{display:block;font-size:14px;font-weight:600;margin:12px 0 5px}.fiel
 
 <section id="home">
 <div class="card">
-  <button class="primary" id="newFlight">🛩️ Nieuwe vlucht</button>
+  <div style="font-size:13px;color:#6b7280;margin-bottom:5px">VLUCHTCONTROLE</div>
+  <button class="primary" id="newFlight">⚡ Snelle check</button>
+  <button class="secondary" id="extendedFlight">🔎 Uitgebreide check</button>
+  <p class="muted small" style="margin:10px 2px 0">Kies per vlucht: snel voor normaal gebruik of uitgebreid voor een volledige controle.</p>
   <button class="secondary" id="daily">✓ Dagelijkse controle</button>
 </div>
 <div class="card">
@@ -52,6 +55,14 @@ label.field{display:block;font-size:14px;font-weight:600;margin:12px 0 5px}.fiel
 <div id="quickList"></div>
 <div class="card"><div class="row"><span>Voortgang</span><strong id="quickPct">0%</strong></div><div class="progress"><div id="quickBar" class="bar"></div></div></div>
 <button id="startFlight" class="primary" disabled style="opacity:.45">🔒 Vlucht vrijgeven</button>
+</section>
+
+<section id="extended" class="hidden">
+<div class="row"><h2>🔎 Uitgebreide check</h2><button id="extendedBack" class="secondary" style="width:auto;padding:9px 13px;font-size:14px">Terug</button></div>
+<p class="muted small">Volledige pre-flight controle. Alles moet zijn afgevinkt.</p>
+<div id="extendedList"></div>
+<div class="card"><div class="row"><span>Voortgang</span><strong id="extendedPct">0%</strong></div><div class="progress"><div id="extendedBar" class="bar"></div></div></div>
+<button id="startExtended" class="primary" disabled style="opacity:.45">🔒 Vlucht vrijgeven</button>
 </section>
 
 <section id="flying" class="hidden">
@@ -102,11 +113,26 @@ const DAILY=[
 "Geen kritieke waarschuwingen aanwezig","Drone en controller fysiek onbeschadigd",
 "Reserveaccu's en noodzakelijke accessoires aanwezig"
 ];
+const EXTENDED=[
+"Opdracht en doel van de vlucht zijn duidelijk","Vluchtgebied en start-/landingsplaats bepaald",
+"UAS-zones en lokale beperkingen gecontroleerd","NOTAM's en tijdelijke beperkingen gecontroleerd",
+"Benodigde toestemming/voorwaarden gecontroleerd","Weer, wind, windstoten en zicht gecontroleerd",
+"Verwachte weersontwikkeling beoordeeld","Drone-romp, armen en bevestigingen gecontroleerd",
+"Motoren vrij van vuil en zonder abnormale speling","Alle propellers onbeschadigd en correct gemonteerd",
+"Landingsgestel gecontroleerd","Camera's, sensoren en lenzen schoon en onbeschadigd",
+"Gimbal vrij en functioneert normaal","TB65-accu voldoende geladen en onbeschadigd",
+"RC Plus 2 voldoende geladen en functioneert normaal","SD-kaart herkend en voldoende vrije opslag",
+"Foto/video-instellingen gecontroleerd","GNSS/positionering beschikbaar","Kompas- en IMU-status normaal",
+"Home Point correct geregistreerd","RTH-hoogte en RTH-instellingen gecontroleerd",
+"Maximale vlieghoogte gecontroleerd","Obstacle Avoidance/sensorinstellingen gecontroleerd",
+"Geen kritieke waarschuwingen","Startplaats stabiel en vrij","Landingsgebied vrij",
+"Omgeving en luchtruim direct vóór opstijgen gecontroleerd","Vlucht kan veilig worden uitgevoerd"
+];
 const POST=["Drone visueel gecontroleerd na landing","Propellers en motoren gecontroleerd","Camera/gimbal gecontroleerd","Accu verwijderd en status gecontroleerd","Beeldmateriaal gecontroleerd"];
 let start=0,timer=null,incident="",flightData={};
 
 const $=id=>document.getElementById(id);
-const sections=["home","quick","flying","post","dailyPanel","incidentPanel"];
+const sections=["home","quick","extended","flying","post","dailyPanel","incidentPanel"];
 function show(id){sections.forEach(s=>$(s).classList.toggle("hidden",s!==id));window.scrollTo(0,0)}
 function render(list,id,group){
  const el=$(id); el.innerHTML="";
@@ -121,7 +147,8 @@ function render(list,id,group){
 function update(group){
  const boxes=[...document.querySelectorAll(`input[data-group="${group}"]`)];
  const done=boxes.filter(x=>x.checked).length,pct=Math.round(done/boxes.length*100);
- if(group==="quick"){$("quickPct").textContent=pct+"%";$("quickBar").style.width=pct+"%";$("startFlight").disabled=pct<100;$("startFlight").style.opacity=pct<100?".45":"1";$("startFlight").textContent=pct===100?"🟢 Vlucht vrijgeven":"🔒 Vlucht vrijgeven"}
+ if(group==="quick"){$("quickPct").textContent=pct+"%";$("quickBar").style.width=pct+"%";$("startFlight").disabled=pct<100;$("startFlight").style.opacity=pct<100?".45":"1";$("startFlight").textContent=pct===100?"🟢 Vlucht vrijgeven":"🔒 Vlucht vrijgeven"} 
+ if(group==="extended"){$("extendedPct").textContent=pct+"%";$("extendedBar").style.width=pct+"%";$("startExtended").disabled=pct<100;$("startExtended").style.opacity=pct<100?".45":"1";$("startExtended").textContent=pct===100?"🟢 Vlucht vrijgeven":"🔒 Vlucht vrijgeven"}
 }
 function fmtTime(ms){let s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),z=s%60;return [h,m,z].map(n=>String(n).padStart(2,"0")).join(":")}
 function loadState(){
@@ -133,6 +160,9 @@ function saveState(extra){const d=JSON.parse(localStorage.getItem("m4t_state")||
 function clock(){ $("clock").textContent=new Date().toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"}); } setInterval(clock,1000);clock();loadState();
 
 $("newFlight").onclick=()=>{render(QUICK,"quickList","quick");show("quick")};
+$("extendedFlight").onclick=()=>{render(EXTENDED,"extendedList","extended");show("extended")};
+$("extendedBack").onclick=()=>show("home");
+$("startExtended").onclick=()=>{start=Date.now();flightData={started:new Date(start).toISOString(),check:"extended"};$("startedAt").textContent="Gestart om "+new Date(start).toLocaleTimeString("nl-NL");$("timer").textContent="00:00:00";timer=setInterval(()=>$("timer").textContent=fmtTime(Date.now()-start),500);show("flying")};
 $("quickBack").onclick=()=>show("home");
 $("daily").onclick=()=>{render(DAILY,"dailyList","daily");show("dailyPanel")};
 $("dailyBack").onclick=()=>show("home");
