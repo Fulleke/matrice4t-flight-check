@@ -44,7 +44,7 @@ label.field{display:block;font-size:14px;font-weight:600;margin:12px 0 5px}.fiel
  <div class="progress"><div id="dailyBar" class="bar"></div></div>
 </div>
 <div class="card">
- <strong>Laatste vlucht</strong>
+ <div class="row"><strong>Laatste vlucht</strong><button id="clearLast" class="secondary" type="button" style="width:auto;padding:8px 11px;font-size:13px">🗑️ Wissen</button></div>
  <div id="lastFlight" class="muted small" style="margin-top:7px">Nog geen vlucht opgeslagen.</div>
 </div>
 </section>
@@ -154,7 +154,7 @@ function fmtTime(ms){let s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor
 function loadState(){
  const d=JSON.parse(localStorage.getItem("m4t_state")||"{}");
  if(d.daily){$("dailyStatus").textContent="Afgerond om "+d.daily;$("dailyBar").style.width="100%"}
- if(d.last){$("lastFlight").textContent=d.last}
+ $("lastFlight").textContent=d.last||"Nog geen vlucht opgeslagen.";
 }
 function saveState(extra){const d=JSON.parse(localStorage.getItem("m4t_state")||"{}");Object.assign(d,extra);localStorage.setItem("m4t_state",JSON.stringify(d));loadState()}
 function clock(){ $("clock").textContent=new Date().toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"}); } setInterval(clock,1000);clock();loadState();
