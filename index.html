@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Matrice 4T">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icons/icon.svg">
-<title>DJI Matrice 4T v9</title>
+<title>DJI Matrice 4T v10</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
 main{max-width:560px;margin:auto;padding:18px 16px 32px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
@@ -69,6 +69,15 @@ label.field{display:block;font-size:14px;font-weight:600;margin:12px 0 5px}.fiel
 <div class="card center"><span class="badge">● VLUCHT ACTIEF</span><div id="timer" class="big">00:00:00</div><div id="startedAt" class="muted small"></div></div>
 <div class="card">
 <label class="field">Locatie / project<input id="project" placeholder="Bijv. Westerhever"></label>
+<details style="margin:12px 0"><summary style="font-weight:700;cursor:pointer">Gegevens voor vluchtregistratie (optioneel)</summary>
+<label class="field">Naam piloot<input id="pilot" placeholder="Naam piloot"></label>
+<label class="field">Uniek toestelnummer/serienummer<input id="serial" placeholder="Serienummer of toestelnummer"></label>
+<label class="field">Categorie/subcategorie<input id="category" value="Open A1/A3"></label>
+<label class="field">Type training/oefening<input id="trainingType" placeholder="Bijv. vluchtbewegingen M4T & warmtzoekfunctie"></label>
+<label class="field">Uitgevoerde oefeningen<textarea id="exercises" rows="2" placeholder="Welke oefeningen zijn uitgevoerd?"></textarea></label>
+<label class="field">Instructeur/begeleider<input id="instructor" placeholder="Naam of Nee"></label>
+<label class="field">Resultaat<input id="result" placeholder="Bijv. Uitstekend, alles werkend"></label>
+</details>
 <label class="field">Opmerking<textarea id="flightNote" rows="3" placeholder="Optioneel"></textarea></label>
 </div>
 <button id="incident" class="secondary">⚠️ Incident / bijzonderheid</button>
@@ -165,12 +174,21 @@ function renderFlights(){
     const row=document.createElement("div");row.className="card";row.style.margin="7px 0";row.style.padding="12px";
     const wrap=document.createElement("div");wrap.className="row";
     const text=document.createElement("span");text.style.cssText="flex:1;line-height:1.35";text.textContent=f.text;
+    const actions=document.createElement("div");actions.style.cssText="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end";
+    const copy=document.createElement("button");copy.className="secondary";copy.type="button";copy.textContent="📋 Kopieer";copy.style.cssText="width:auto;padding:8px 9px;font-size:12px;margin:0;min-height:38px";copy.onclick=()=>copyRegistration(f);
+    const excel=document.createElement("button");excel.className="secondary";excel.type="button";excel.textContent="📊 Excel";excel.style.cssText="width:auto;padding:8px 9px;font-size:12px;margin:0;min-height:38px";excel.onclick=()=>downloadRegistration(f);
     const btn=document.createElement("button");btn.className="danger";btn.type="button";btn.textContent="🗑️";
-    btn.style.cssText="width:auto;padding:8px 10px;font-size:13px;margin:0;flex:none";
+    btn.style.cssText="width:auto;padding:8px 10px;font-size:13px;margin:0;min-height:38px;flex:none";
     btn.onclick=()=>{if(!confirm("Deze vlucht verwijderen?"))return;setFlights(getFlights().filter(x=>String(x.id)!==String(f.id)));renderFlights()};
-    wrap.append(text,btn);row.appendChild(wrap);list.appendChild(row);
+    actions.append(copy,excel,btn);wrap.append(text,actions);row.appendChild(wrap);list.appendChild(row);
   });
 }
+const REGISTRATION_LABELS=["Datum","Trainingslocatie","Naam piloot","Drone/type","Uniek toestelnummer/serienummer","Categorie/subcategorie","Type training/oefening","Start- en eindtijd training","Werkelijke vliegtijd","Uitgevoerde oefeningen","Instructeur/begeleider","Resultaat","Bijzonderheden, storing of incident"];
+function registrationRows(f){const d=f.data||f;const started=d.started?new Date(d.started):null;const ended=d.end?new Date(d.end):null;const legacyParts=String(f.text||"").split(" • ");const dateValue=(started&&!isNaN(started)?started.toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):d.date||legacyParts[0]||"");const timeRange=started&&!isNaN(started)?started.toLocaleTimeString("nl-NL")+" - "+(ended&&!isNaN(ended)?ended.toLocaleTimeString("nl-NL"):""):"";const rawDuration=d.duration||legacyParts[2]||"";const durationParts=String(rawDuration).split(":");const displayDuration=durationParts.length===3&&durationParts[0]==="00"?durationParts.slice(1).join(":"):rawDuration;return [[REGISTRATION_LABELS[0],dateValue],[REGISTRATION_LABELS[1],d.project||d.location||legacyParts[1]||""],[REGISTRATION_LABELS[2],d.pilot||""],[REGISTRATION_LABELS[3],d.droneType||"DJI Matrice 4T"],[REGISTRATION_LABELS[4],d.serial||""],[REGISTRATION_LABELS[5],d.category||"Open A1/A3"],[REGISTRATION_LABELS[6],d.trainingType||d.purpose||""],[REGISTRATION_LABELS[7],timeRange],[REGISTRATION_LABELS[8],displayDuration],[REGISTRATION_LABELS[9],d.exercises||""],[REGISTRATION_LABELS[10],d.instructor||""],[REGISTRATION_LABELS[11],d.result||d.status||""],[REGISTRATION_LABELS[12],d.incident||d.note||""]];}
+function registrationTSV(f){return registrationRows(f).map(r=>r.map(v=>String(v??"").replace(/[\t\r\n]+/g," ")).join("\t")).join("\n");}
+function copyRegistration(f){const text=registrationTSV(f);if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>alert("Registratiegegevens gekopieerd. Plak ze in het online formulier of Excel." )).catch(()=>fallbackCopy(text));}else fallbackCopy(text);}
+function fallbackCopy(text){const area=document.createElement("textarea");area.value=text;area.style.position="fixed";area.style.opacity="0";document.body.appendChild(area);area.select();try{document.execCommand("copy");alert("Registratiegegevens gekopieerd. Plak ze in het online formulier of Excel.")}catch(e){alert("Kopiëren lukte niet. Gebruik de Excel-export.")}area.remove();}
+function downloadRegistration(f){const rows=registrationRows(f);const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");const html='<html><head><meta charset="utf-8"></head><body><table border="1"><tr><th style="background:#000;color:#fff">Gegevens</th><th style="background:#000;color:#fff">Registreren</th></tr>'+rows.map(r=>'<tr>'+r.map(v=>'<td>'+esc(v)+'</td>').join('')+'</tr>').join('')+'</table></body></html>';const blob=new Blob(['\ufeff',html],{type:'application/vnd.ms-excel;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Vluchtregistratie_'+String((f.data||f).project||'Matrice4T').replace(/[^a-z0-9_-]+/gi,'_')+'.xls';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function loadState(){
   const d=JSON.parse(localStorage.getItem("m4t_state")||"{}");
   if(d.daily){$("dailyStatus").textContent="Afgerond om "+d.daily;$("dailyBar").style.width="100%"}
@@ -201,13 +219,13 @@ $("endFlight").onclick=()=>{clearInterval(timer);render(POST,"postList","post");
 $("saveFlight").onclick=()=>{
  const boxes=[...document.querySelectorAll('input[data-group="post"]')];if(boxes.some(x=>!x.checked)){alert("Rond eerst alle post-flight controles af.");return}
  const end=Date.now(),duration=fmtTime(end-start),project=$("project").value.trim()||"Geen projectnaam";
- flightData={...flightData,end:new Date(end).toISOString(),duration,project,note:$("flightNote").value.trim(),incident};
- const text=`${new Date(start).toLocaleDateString("nl-NL")} • ${project} • ${duration}${incident?" • ⚠️ bijzonderheid":" "}`;
+ flightData={...flightData,end:new Date(end).toISOString(),duration,project,note:$("flightNote").value.trim(),incident,pilot:$ ("pilot").value.trim(),serial:$ ("serial").value.trim(),category:$ ("category").value.trim()||"Open A1/A3",trainingType:$ ("trainingType").value.trim(),exercises:$ ("exercises").value.trim(),instructor:$ ("instructor").value.trim(),result:$ ("result").value.trim()||"Voltooid",droneType:"DJI Matrice 4T",date:new Date(start).toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long",year:"numeric"})};
+ const text=`${new Date(start).toLocaleDateString("nl-NL")} • ${project} • ${duration}${incident?" • ⚠️ bijzonderheid":""}`;
   const flights=getFlights();
-  flights.unshift({id:String(Date.now())+"-"+Math.random().toString(36).slice(2),text});
+  flights.unshift({id:String(Date.now())+"-"+Math.random().toString(36).slice(2),text,data:flightData});
   setFlights(flights);
   loadState();
- $("project").value="";$("flightNote").value="";incident="";show("home");alert("Vlucht opgeslagen.");
+ $("project").value="";$("flightNote").value="";["pilot","serial","trainingType","exercises","instructor","result"].forEach(id=>$(id).value="");$("category").value="Open A1/A3";incident="";show("home");alert("Vlucht opgeslagen.");
 };
 if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
