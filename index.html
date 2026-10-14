@@ -171,16 +171,14 @@ function renderFlights(){
   if(!flights.length){list.innerHTML='<span class="muted">Nog geen vluchten opgeslagen.</span>';return}
   list.innerHTML="";
   flights.forEach(f=>{
-    const row=document.createElement("div");row.className="card";row.style.margin="7px 0";row.style.padding="12px";
-    const wrap=document.createElement("div");wrap.className="row";
-    const text=document.createElement("span");text.style.cssText="flex:1;line-height:1.35";text.textContent=f.text;
-    const actions=document.createElement("div");actions.style.cssText="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end";
-    const copy=document.createElement("button");copy.className="secondary";copy.type="button";copy.textContent="📋 Kopieer";copy.style.cssText="width:auto;padding:8px 9px;font-size:12px;margin:0;min-height:38px";copy.onclick=()=>copyRegistration(f);
-    const excel=document.createElement("button");excel.className="secondary";excel.type="button";excel.textContent="📊 Excel";excel.style.cssText="width:auto;padding:8px 9px;font-size:12px;margin:0;min-height:38px";excel.onclick=()=>downloadRegistration(f);
-    const btn=document.createElement("button");btn.className="danger";btn.type="button";btn.textContent="🗑️";
-    btn.style.cssText="width:auto;padding:8px 10px;font-size:13px;margin:0;min-height:38px;flex:none";
+    const row=document.createElement("div");row.className="card";row.style.cssText="margin:10px 0;padding:12px";
+    const text=document.createElement("div");text.style.cssText="line-height:1.4;margin-bottom:10px;font-weight:600";text.textContent=f.text;
+    const actions=document.createElement("div");actions.style.cssText="display:flex;flex-direction:column;gap:7px;width:100%";
+    const copy=document.createElement("button");copy.className="secondary";copy.type="button";copy.textContent="📋 Kopieer registratiegegevens";copy.style.cssText="width:100%;padding:12px;font-size:15px;margin:0;min-height:46px";copy.onclick=()=>copyRegistration(f);
+    const excel=document.createElement("button");excel.className="primary";excel.type="button";excel.textContent="📊 Exporteer naar Excel";excel.style.cssText="width:100%;padding:12px;font-size:15px;margin:0;min-height:46px";excel.onclick=()=>downloadRegistration(f);
+    const btn=document.createElement("button");btn.className="danger";btn.type="button";btn.textContent="🗑️ Verwijder deze vlucht";btn.style.cssText="width:100%;padding:10px;font-size:14px;margin:0;min-height:42px";
     btn.onclick=()=>{if(!confirm("Deze vlucht verwijderen?"))return;setFlights(getFlights().filter(x=>String(x.id)!==String(f.id)));renderFlights()};
-    actions.append(copy,excel,btn);wrap.append(text,actions);row.appendChild(wrap);list.appendChild(row);
+    actions.append(copy,excel,btn);row.append(text,actions);list.appendChild(row);
   });
 }
 const REGISTRATION_LABELS=["Datum","Trainingslocatie","Naam piloot","Drone/type","Uniek toestelnummer/serienummer","Categorie/subcategorie","Type training/oefening","Start- en eindtijd training","Werkelijke vliegtijd","Uitgevoerde oefeningen","Instructeur/begeleider","Resultaat","Bijzonderheden, storing of incident"];
